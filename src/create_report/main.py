@@ -11,7 +11,6 @@ from typing import Dict, Any
 from openai import OpenAI
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
 # Setup logging
@@ -19,13 +18,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class OpenAITool:
-    """Custom OpenAI tool for research and content generation"""
-    
     def __init__(self):
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     
     def research(self, query: str) -> str:
-        """Research a topic using OpenAI"""
         try:
             response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
@@ -42,7 +38,6 @@ class OpenAITool:
             return f"Research unavailable for: {query}"
     
     def analyze(self, content: str, topic: str) -> str:
-        """Analyze content using OpenAI"""
         try:
             response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
@@ -59,7 +54,6 @@ class OpenAITool:
             return f"Analysis unavailable for: {topic}"
 
 class CrewOutput:
-    """Custom output class to handle crew results"""
     def __init__(self, content: str):
         self.content = content
     
@@ -67,17 +61,11 @@ class CrewOutput:
         return self.content
 
 class ReportCreator:
-    """
-    Main class for creating comprehensive reports using CrewAI agents with OpenAI
-    """
-    
     def __init__(self):
-        """Initialize the report creator with agents and tools"""
         self.setup_tools()
         self.setup_agents()
     
     def setup_tools(self):
-        """Setup OpenAI tool"""
         try:
             self.openai_tool = OpenAITool()
             logger.info("OpenAI tool initialized successfully")
@@ -85,9 +73,7 @@ class ReportCreator:
             logger.error(f"Could not initialize OpenAI tool: {str(e)}")
             self.openai_tool = None
         
-    def setup_agents(self):
-        """Setup the AI agents for different aspects of report creation"""
-        
+    def setup_agents(self):       
         # Research Agent
         self.researcher = Agent(
             role="Senior Research Analyst",
@@ -137,42 +123,21 @@ class ReportCreator:
         )
     
     def create_report(self, config: Dict[str, Any]) -> str:
-        """
-        Create a comprehensive report based on the given configuration
-        
-        Args:
-            config: Dictionary containing report configuration
-                - topic: The topic for the report
-                - report_type: Type of report to generate
-                - length: Expected length of the report
-                - include_charts: Whether to include data visualizations
-                - include_sources: Whether to include source references
-        
-        Returns:
-            str: The generated report content
-        """
         try:
             logger.info(f"Starting report creation for topic: {config['topic']}")
-            
-            # Get initial research from OpenAI
             research_data = ""
             if self.openai_tool:
                 research_data = self.openai_tool.research(config['topic'])
                 logger.info("Research data gathered from OpenAI")
-            
-            # Create tasks for each agent
             tasks = self.create_tasks(config, research_data)
             
-            # Create the crew
             crew = Crew(
                 agents=[self.researcher, self.writer, self.analyst, self.reviewer],
                 tasks=tasks,
                 verbose=True
             )
             
-            # Execute the crew
             result = crew.kickoff()
-            
             logger.info("Report creation completed successfully")
             return str(result)
             
@@ -181,8 +146,6 @@ class ReportCreator:
             return self.create_fallback_report(config)
     
     def create_tasks(self, config: Dict[str, Any], research_data: str = "") -> list:
-        """Create tasks for the agents based on configuration"""
-        
         topic = config['topic']
         report_type = config['report_type']
         length = config['length']
@@ -281,12 +244,8 @@ class ReportCreator:
         return [research_task, analysis_task, writing_task, review_task]
     
     def create_fallback_report(self, config: Dict[str, Any]) -> str:
-        """Create a fallback report if the main process fails"""
-        
         topic = config['topic']
         report_type = config['report_type']
-        
-        # Try to use OpenAI for fallback report
         if self.openai_tool:
             try:
                 response = self.openai_tool.client.chat.completions.create(
@@ -349,9 +308,6 @@ The analysis of "{topic}" reveals several important considerations that should b
         """
 
 def run_report_creation():
-    """Function to run report creation from command line"""
-    
-    # Example usage
     creator = ReportCreator()
     
     config = {
