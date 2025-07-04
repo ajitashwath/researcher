@@ -1,5 +1,5 @@
 from crewai import Agent, Task, Crew, Process
-from crewai.tools import SerperDevTool
+from crewai_tools import SerperDevTool
 from .tools.custom_tool import get_all_tools
 import yaml
 import os
@@ -8,6 +8,14 @@ import logging
 from typing import Dict, List, Any, Optional
 
 logger = logging.getLogger(__name__)
+
+class CrewOutput:
+    """Custom output class to handle crew results"""
+    def __init__(self, content: str):
+        self.content = content
+    
+    def __str__(self):
+        return self.content
 
 class CrewManager:
     """
@@ -47,8 +55,11 @@ class CrewManager:
         tools = {}
         
         # Add custom tools
-        for tool in get_all_tools():
-            tools[tool.name] = tool
+        try:
+            for tool in get_all_tools():
+                tools[tool.name] = tool
+        except Exception as e:
+            logger.warning(f"Could not load custom tools: {str(e)}")
         
         # Add external tools
         try:
@@ -91,8 +102,7 @@ class CrewManager:
             backstory=config.get('backstory', ''),
             tools=agent_tools,
             verbose=config.get('verbose', False),
-            allow_delegation=config.get('allow_delegation', False),
-            max_execution_time=config.get('max_execution_time', 300)
+            allow_delegation=config.get('allow_delegation', False)
         )
         
         self.agents[agent_name] = agent
@@ -122,11 +132,11 @@ class CrewManager:
             raise ValueError(f"Agent '{agent_name}' not found for task '{task_name}'")
         
         # Handle dependencies
-        dependencies = []
+        task_dependencies = []
         if 'dependencies' in config:
             for dep_name in config['dependencies']:
                 if dep_name in self.tasks:
-                    dependencies.append(self.tasks[dep_name])
+                    task_dependencies.append(self.tasks[dep_name])
                 else:
                     logger.warning(f"Dependency '{dep_name}' not found for task '{task_name}'")
         
@@ -134,8 +144,7 @@ class CrewManager:
         task = Task(
             description=config.get('description', ''),
             expected_output=config.get('expected_output', ''),
-            agent=agents[agent_name],
-            dependencies=dependencies
+            agent=agents[agent_name]
         )
         
         self.tasks[task_name] = task
@@ -186,8 +195,7 @@ class CrewManager:
             tasks=tasks,
             verbose=True,
             process=Process.sequential,
-            memory=True,
-            max_execution_time=1800  # 30 minutes max
+            memory=True
         )
         
         return crew

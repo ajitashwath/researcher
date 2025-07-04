@@ -1,5 +1,5 @@
 from crewai import Agent, Task, Crew
-from crewai.tools import SerperDevTool
+from crewai_tools import SerperDevTool
 import os
 from datetime import datetime
 import logging
@@ -8,6 +8,14 @@ from typing import Dict, Any
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+class CrewOutput:
+    """Custom output class to handle crew results"""
+    def __init__(self, content: str):
+        self.content = content
+    
+    def __str__(self):
+        return self.content
 
 class ReportCreator:
     """
@@ -22,10 +30,19 @@ class ReportCreator:
     def setup_tools(self):
         """Setup tools for the agents"""
         # Web search tool (you'll need to set SERPER_API_KEY environment variable)
-        self.search_tool = SerperDevTool()
+        try:
+            self.search_tool = SerperDevTool()
+        except Exception as e:
+            logger.warning(f"Could not initialize SerperDevTool: {str(e)}")
+            self.search_tool = None
         
     def setup_agents(self):
         """Setup the AI agents for different aspects of report creation"""
+        
+        # Prepare tools list
+        tools = []
+        if self.search_tool:
+            tools.append(self.search_tool)
         
         # Research Agent
         self.researcher = Agent(
@@ -35,7 +52,7 @@ class ReportCreator:
             information from various sources. You have a keen eye for detail and can distinguish 
             between credible and unreliable sources. You excel at finding the most current and 
             relevant information on any topic.""",
-            tools=[self.search_tool],
+            tools=tools,
             verbose=True,
             allow_delegation=False
         )
@@ -107,7 +124,7 @@ class ReportCreator:
             result = crew.kickoff()
             
             logger.info("Report creation completed successfully")
-            return result
+            return str(result)
             
         except Exception as e:
             logger.error(f"Error creating report: {str(e)}")
@@ -155,8 +172,7 @@ class ReportCreator:
             Focus on extracting actionable insights that will strengthen the report.
             """,
             expected_output="A detailed analysis with insights, trends, and recommendations based on research findings",
-            agent=self.analyst,
-            dependencies=[research_task]
+            agent=self.analyst
         )
         
         # Writing Task
@@ -186,8 +202,7 @@ class ReportCreator:
             {"Include references to sources and data visualizations as requested." if config.get('include_sources') else ""}
             """,
             expected_output=f"A well-structured, comprehensive {report_type.lower()} report of approximately {length} pages",
-            agent=self.writer,
-            dependencies=[research_task, analysis_task]
+            agent=self.writer
         )
         
         # Review Task
@@ -207,8 +222,7 @@ class ReportCreator:
             Ensure the report meets the requirements for a {report_type.lower()} of {length} pages.
             """,
             expected_output="A final, polished, and high-quality report ready for presentation",
-            agent=self.reviewer,
-            dependencies=[writing_task]
+            agent=self.reviewer
         )
         
         return [research_task, analysis_task, writing_task, review_task]
