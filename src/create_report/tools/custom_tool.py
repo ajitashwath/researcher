@@ -6,200 +6,257 @@ import json
 import pandas as pd
 from datetime import datetime
 import logging
+from openai import OpenAI
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-class WebScraperInput(BaseModel):
-    """Input schema for WebScraper tool"""
-    url: str = Field(..., description="The URL to scrape content from")
-    max_content_length: int = Field(5000, description="Maximum content length to return")
+class OpenAIWebSearchInput(BaseModel):
+    """Input schema for OpenAI Web Search tool"""
+    query: str = Field(..., description="The search query to research")
+    depth: str = Field("comprehensive", description="Depth of search: 'basic', 'comprehensive', or 'detailed'")
 
-class WebScraperTool(BaseTool):
-    """Custom tool for scraping web content"""
+class OpenAIWebSearchTool(BaseTool):
+    """Custom tool for web search using OpenAI"""
     
-    name: str = "web_scraper"
-    description: str = "Scrape content from web pages to gather information for research"
-    args_schema: Type[BaseModel] = WebScraperInput
+    name: str = "openai_web_search"
+    description: str = "Search and research information using OpenAI's knowledge base"
+    args_schema: Type[BaseModel] = OpenAIWebSearchInput
     
-    def _run(self, url: str, max_content_length: int = 5000) -> str:
+    def __init__(self):
+        super().__init__()
+        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    
+    def _run(self, query: str, depth: str = "comprehensive") -> str:
         """
-        Scrape content from a given URL
+        Search for information using OpenAI
         
         Args:
-            url: The URL to scrape
-            max_content_length: Maximum length of content to return
+            query: The search query
+            depth: Depth of search
             
         Returns:
-            str: Scraped content
+            str: Search results
         """
         try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            system_prompt = {
+                "basic": "Provide a concise answer with key facts about the query.",
+                "comprehensive": "Provide detailed information including background, current state, key facts, and relevant examples.",
+                "detailed": "Provide an in-depth analysis including historical context, current trends, statistical data, expert opinions, and future implications."
             }
             
-            response = requests.get(url, headers=headers, timeout=10)
-            response.raise_for_status()
+            response = self.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": system_prompt.get(depth, system_prompt["comprehensive"])},
+                    {"role": "user", "content": f"Research and provide information about: {query}"}
+                ],
+                max_tokens=1500,
+                temperature=0.7
+            )
             
-            content = response.text
-            
-            # Simple content extraction (in production, you'd use BeautifulSoup)
-            # Remove HTML tags and clean up content
-            import re
-            content = re.sub(r'<[^>]+>', '', content)
-            content = re.sub(r'\s+', ' ', content)
-            content = content.strip()
-            
-            # Limit content length
-            if len(content) > max_content_length:
-                content = content[:max_content_length] + "..."
-            
-            return content
+            return response.choices[0].message.content
             
         except Exception as e:
-            logger.error(f"Error scraping URL {url}: {str(e)}")
-            return f"Error scraping content from {url}: {str(e)}"
+            logger.error(f"Error in OpenAI web search for {query}: {str(e)}")
+            return f"Error searching for information about {query}: {str(e)}"
 
-class DataAnalysisInput(BaseModel):
-    """Input schema for DataAnalysis tool"""
+class OpenAIDataAnalysisInput(BaseModel):
+    """Input schema for OpenAI Data Analysis tool"""
     data: str = Field(..., description="Data to analyze (JSON format or CSV-like string)")
-    analysis_type: str = Field("summary", description="Type of analysis to perform")
+    analysis_type: str = Field("summary", description="Type of analysis: 'summary', 'trends', 'insights', 'recommendations'")
+    context: str = Field("", description="Additional context for analysis")
 
-class DataAnalysisTool(BaseTool):
-    """Custom tool for data analysis"""
+class OpenAIDataAnalysisTool(BaseTool):
+    """Custom tool for data analysis using OpenAI"""
     
-    name: str = "data_analysis_tool"
-    description: str = "Analyze data and provide insights, trends, and statistical summaries"
-    args_schema: Type[BaseModel] = DataAnalysisInput
+    name: str = "openai_data_analysis"
+    description: str = "Analyze data and provide insights using OpenAI's analytical capabilities"
+    args_schema: Type[BaseModel] = OpenAIDataAnalysisInput
     
-    def _run(self, data: str, analysis_type: str = "summary") -> str:
+    def __init__(self):
+        super().__init__()
+        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    
+    def _run(self, data: str, analysis_type: str = "summary", context: str = "") -> str:
         """
-        Analyze data and provide insights
+        Analyze data using OpenAI
         
         Args:
             data: Data to analyze
             analysis_type: Type of analysis to perform
+            context: Additional context
             
         Returns:
             str: Analysis results
         """
         try:
-            # Try to parse as JSON first
-            try:
-                data_obj = json.loads(data)
-                return self._analyze_json_data(data_obj, analysis_type)
-            except json.JSONDecodeError:
-                # Try to parse as CSV-like data
-                return self._analyze_text_data(data, analysis_type)
-                
-        except Exception as e:
-            logger.error(f"Error analyzing data: {str(e)}")
-            return f"Error analyzing data: {str(e)}"
-    
-    def _analyze_json_data(self, data_obj: Any, analysis_type: str) -> str:
-        """Analyze JSON data"""
-        try:
-            if isinstance(data_obj, dict):
-                keys = list(data_obj.keys())
-                return f"Data analysis summary:\n- Keys: {keys}\n- Total fields: {len(keys)}\n- Data type: Dictionary"
-            elif isinstance(data_obj, list):
-                return f"Data analysis summary:\n- Items: {len(data_obj)}\n- Data type: List\n- First item type: {type(data_obj[0]) if data_obj else 'N/A'}"
-            else:
-                return f"Data analysis summary:\n- Data type: {type(data_obj)}\n- Value: {str(data_obj)[:100]}..."
-        except Exception as e:
-            return f"Error analyzing JSON data: {str(e)}"
-    
-    def _analyze_text_data(self, data: str, analysis_type: str) -> str:
-        """Analyze text data"""
-        try:
-            lines = data.strip().split('\n')
-            words = data.split()
+            system_prompts = {
+                "summary": "Analyze the provided data and give a comprehensive summary highlighting key statistics and patterns.",
+                "trends": "Identify and explain trends, patterns, and correlations in the provided data.",
+                "insights": "Extract meaningful insights and implications from the data that could inform decision-making.",
+                "recommendations": "Based on the data analysis, provide actionable recommendations and strategic suggestions."
+            }
             
-            return f"""Text data analysis summary:
-- Total lines: {len(lines)}
-- Total words: {len(words)}
-- Character count: {len(data)}
-- Analysis type: {analysis_type}
-- Sample text: {data[:200]}...
-"""
+            user_prompt = f"Analyze this data: {data}"
+            if context:
+                user_prompt += f"\nContext: {context}"
+            
+            response = self.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": system_prompts.get(analysis_type, system_prompts["summary"])},
+                    {"role": "user", "content": user_prompt}
+                ],
+                max_tokens=1200,
+                temperature=0.5
+            )
+            
+            return response.choices[0].message.content
+            
         except Exception as e:
-            return f"Error analyzing text data: {str(e)}"
+            logger.error(f"Error in OpenAI data analysis: {str(e)}")
+            return f"Error analyzing data: {str(e)}"
 
-class ResearchInput(BaseModel):
-    """Input schema for Research tool"""
-    query: str = Field(..., description="Research query or topic")
-    max_results: int = Field(10, description="Maximum number of results to return")
+class OpenAIContentGeneratorInput(BaseModel):
+    """Input schema for OpenAI Content Generator tool"""
+    topic: str = Field(..., description="Topic for content generation")
+    content_type: str = Field("report", description="Type of content: 'report', 'summary', 'analysis', 'proposal'")
+    length: str = Field("medium", description="Length: 'short', 'medium', 'long'")
+    style: str = Field("professional", description="Writing style: 'professional', 'academic', 'casual'")
 
-class ResearchTool(BaseTool):
-    """Custom tool for research tasks"""
+class OpenAIContentGeneratorTool(BaseTool):
+    """Custom tool for content generation using OpenAI"""
     
-    name: str = "research_tool"
-    description: str = "Conduct research on topics and provide structured information"
-    args_schema: Type[BaseModel] = ResearchInput
+    name: str = "openai_content_generator"
+    description: str = "Generate structured content like reports, summaries, and analyses using OpenAI"
+    args_schema: Type[BaseModel] = OpenAIContentGeneratorInput
     
-    def _run(self, query: str, max_results: int = 10) -> str:
+    def __init__(self):
+        super().__init__()
+        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    
+    def _run(self, topic: str, content_type: str = "report", length: str = "medium", style: str = "professional") -> str:
         """
-        Conduct research on a topic
+        Generate content using OpenAI
+        
+        Args:
+            topic: Topic for content generation
+            content_type: Type of content to generate
+            length: Length of content
+            style: Writing style
+            
+        Returns:
+            str: Generated content
+        """
+        try:
+            token_limits = {
+                "short": 800,
+                "medium": 1500,
+                "long": 2000
+            }
+            
+            system_prompt = f"""You are a {style} writer specializing in creating {content_type}s. 
+            Generate well-structured, informative content that is {length} in length and follows {style} writing conventions."""
+            
+            user_prompt = f"Create a {length} {content_type} about: {topic}"
+            
+            response = self.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                max_tokens=token_limits.get(length, 1500),
+                temperature=0.7
+            )
+            
+            return response.choices[0].message.content
+            
+        except Exception as e:
+            logger.error(f"Error in OpenAI content generation: {str(e)}")
+            return f"Error generating content about {topic}: {str(e)}"
+
+class OpenAIResearchInput(BaseModel):
+    """Input schema for OpenAI Research tool"""
+    query: str = Field(..., description="Research query or topic")
+    focus_areas: List[str] = Field([], description="Specific areas to focus on")
+    research_depth: str = Field("standard", description="Research depth: 'basic', 'standard', 'comprehensive'")
+
+class OpenAIResearchTool(BaseTool):
+    """Custom tool for research tasks using OpenAI"""
+    
+    name: str = "openai_research_tool"
+    description: str = "Conduct comprehensive research on topics using OpenAI's knowledge base"
+    args_schema: Type[BaseModel] = OpenAIResearchInput
+    
+    def __init__(self):
+        super().__init__()
+        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    
+    def _run(self, query: str, focus_areas: List[str] = [], research_depth: str = "standard") -> str:
+        """
+        Conduct research using OpenAI
         
         Args:
             query: Research query
-            max_results: Maximum number of results
+            focus_areas: Areas to focus on
+            research_depth: Depth of research
             
         Returns:
             str: Research results
         """
         try:
-            # This is a placeholder implementation
-            # In a real application, you would integrate with search APIs, databases, etc.
+            system_prompts = {
+                "basic": "Provide basic information and key facts about the topic.",
+                "standard": "Provide comprehensive research including background, current state, key findings, and implications.",
+                "comprehensive": "Provide in-depth research with historical context, current trends, statistical analysis, expert perspectives, and future outlook."
+            }
             
-            research_results = f"""
-Research Results for: "{query}"
-
-Key Findings:
-1. Current state analysis of {query}
-2. Recent developments and trends
-3. Best practices and solutions
-4. Statistical data and insights
-5. Expert opinions and case studies
-
-Recommendations:
-- Further investigation needed in specific areas
-- Consider multiple perspectives on the topic
-- Evaluate recent developments and their impact
-- Analyze quantitative data where available
-
-Sources:
-- Academic papers and journals
-- Industry reports and whitepapers
-- Government publications
-- Expert interviews and surveys
-
-Note: This is a simulated research result. In production, this would connect to real data sources.
-"""
+            user_prompt = f"Research the following topic: {query}"
             
-            return research_results
+            if focus_areas:
+                user_prompt += f"\n\nPlease focus specifically on these areas: {', '.join(focus_areas)}"
+            
+            response = self.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": system_prompts.get(research_depth, system_prompts["standard"])},
+                    {"role": "user", "content": user_prompt}
+                ],
+                max_tokens=2000,
+                temperature=0.6
+            )
+            
+            return response.choices[0].message.content
             
         except Exception as e:
-            logger.error(f"Error conducting research: {str(e)}")
+            logger.error(f"Error in OpenAI research: {str(e)}")
             return f"Error conducting research on '{query}': {str(e)}"
 
 def get_all_tools() -> List[BaseTool]:
     """
-    Get all available custom tools
+    Get all available OpenAI-powered custom tools
     
     Returns:
         List[BaseTool]: List of all custom tools
     """
     return [
-        WebScraperTool(),
-        DataAnalysisTool(),
-        ResearchTool()
+        OpenAIWebSearchTool(),
+        OpenAIDataAnalysisTool(),
+        OpenAIContentGeneratorTool(),
+        OpenAIResearchTool()
     ]
 
-'''
 if __name__ == "__main__":
+    # Test the tools
     tools = get_all_tools()
     
     for tool in tools:
         print(f"Tool: {tool.name}")
         print(f"Description: {tool.description}")
-'''
+        print("---")

@@ -1,13 +1,62 @@
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+sys.modules["sqlite3.dbapi2"] = sys.modules["pysqlite3.dbapi2"]
+
 from crewai import Agent, Task, Crew
-from crewai_tools import SerperDevTool
 import os
 from datetime import datetime
 import logging
 from typing import Dict, Any
+from openai import OpenAI
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+class OpenAITool:
+    """Custom OpenAI tool for research and content generation"""
+    
+    def __init__(self):
+        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    
+    def research(self, query: str) -> str:
+        """Research a topic using OpenAI"""
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a research analyst. Provide comprehensive research on the given topic with current information, statistics, and credible insights."},
+                    {"role": "user", "content": f"Research and provide detailed information about: {query}"}
+                ],
+                max_tokens=1500,
+                temperature=0.7
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            logger.error(f"OpenAI research error: {str(e)}")
+            return f"Research unavailable for: {query}"
+    
+    def analyze(self, content: str, topic: str) -> str:
+        """Analyze content using OpenAI"""
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a data analyst. Analyze the provided content and extract key insights, trends, and recommendations."},
+                    {"role": "user", "content": f"Analyze this content about {topic}:\n\n{content}"}
+                ],
+                max_tokens=1000,
+                temperature=0.5
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            logger.error(f"OpenAI analysis error: {str(e)}")
+            return f"Analysis unavailable for: {topic}"
 
 class CrewOutput:
     """Custom output class to handle crew results"""
@@ -19,7 +68,7 @@ class CrewOutput:
 
 class ReportCreator:
     """
-    Main class for creating comprehensive reports using CrewAI agents
+    Main class for creating comprehensive reports using CrewAI agents with OpenAI
     """
     
     def __init__(self):
@@ -28,21 +77,16 @@ class ReportCreator:
         self.setup_agents()
     
     def setup_tools(self):
-        """Setup tools for the agents"""
-        # Web search tool (you'll need to set SERPER_API_KEY environment variable)
+        """Setup OpenAI tool"""
         try:
-            self.search_tool = SerperDevTool()
+            self.openai_tool = OpenAITool()
+            logger.info("OpenAI tool initialized successfully")
         except Exception as e:
-            logger.warning(f"Could not initialize SerperDevTool: {str(e)}")
-            self.search_tool = None
+            logger.error(f"Could not initialize OpenAI tool: {str(e)}")
+            self.openai_tool = None
         
     def setup_agents(self):
         """Setup the AI agents for different aspects of report creation"""
-        
-        # Prepare tools list
-        tools = []
-        if self.search_tool:
-            tools.append(self.search_tool)
         
         # Research Agent
         self.researcher = Agent(
@@ -52,7 +96,7 @@ class ReportCreator:
             information from various sources. You have a keen eye for detail and can distinguish 
             between credible and unreliable sources. You excel at finding the most current and 
             relevant information on any topic.""",
-            tools=tools,
+            tools=[],
             verbose=True,
             allow_delegation=False
         )
@@ -110,8 +154,14 @@ class ReportCreator:
         try:
             logger.info(f"Starting report creation for topic: {config['topic']}")
             
+            # Get initial research from OpenAI
+            research_data = ""
+            if self.openai_tool:
+                research_data = self.openai_tool.research(config['topic'])
+                logger.info("Research data gathered from OpenAI")
+            
             # Create tasks for each agent
-            tasks = self.create_tasks(config)
+            tasks = self.create_tasks(config, research_data)
             
             # Create the crew
             crew = Crew(
@@ -130,7 +180,7 @@ class ReportCreator:
             logger.error(f"Error creating report: {str(e)}")
             return self.create_fallback_report(config)
     
-    def create_tasks(self, config: Dict[str, Any]) -> list:
+    def create_tasks(self, config: Dict[str, Any], research_data: str = "") -> list:
         """Create tasks for the agents based on configuration"""
         
         topic = config['topic']
@@ -141,6 +191,9 @@ class ReportCreator:
         research_task = Task(
             description=f"""
             Conduct comprehensive research on the topic: "{topic}"
+            
+            Additional research data available:
+            {research_data}
             
             Your research should include:
             1. Current state and background information
@@ -233,6 +286,22 @@ class ReportCreator:
         topic = config['topic']
         report_type = config['report_type']
         
+        # Try to use OpenAI for fallback report
+        if self.openai_tool:
+            try:
+                response = self.openai_tool.client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": f"You are a professional report writer. Create a comprehensive {report_type.lower()} report."},
+                        {"role": "user", "content": f"Create a detailed {config['length']}-page report on: {topic}"}
+                    ],
+                    max_tokens=2000,
+                    temperature=0.7
+                )
+                return response.choices[0].message.content
+            except Exception as e:
+                logger.error(f"Fallback OpenAI report failed: {str(e)}")
+        
         return f"""
 # {report_type}: {topic}
 
@@ -276,7 +345,7 @@ The analysis of "{topic}" reveals several important considerations that should b
 
 ---
 
-*Note: This is a simplified report. For a comprehensive analysis with detailed research and insights, please ensure all system dependencies are properly configured.*
+*Note: This is a simplified report. For a comprehensive analysis with detailed research and insights, please ensure OpenAI API key is properly configured.*
         """
 
 def run_report_creation():

@@ -1,3 +1,8 @@
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+sys.modules["sqlite3.dbapi2"] = sys.modules["pysqlite3.dbapi2"]
+
 import streamlit as st
 import sys
 import os
@@ -10,7 +15,7 @@ from create_report.main import ReportCreator
 def main():
     st.set_page_config(
         page_title="AI Report Generator",
-        page_icon="📊",
+        page_icon="🤖",
         layout="wide",
         initial_sidebar_state="expanded"
     )
@@ -27,7 +32,7 @@ def main():
         margin-bottom: 2rem;
     }
     .report-container {
-        background: #f8f9fa;
+        background: #000000;
         padding: 2rem;
         border-radius: 10px;
         border-left: 5px solid #667eea;
