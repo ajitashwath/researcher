@@ -1,0 +1,149 @@
+research_task:
+  description: >
+    Conduct comprehensive research on the topic: "{topic}"
+    
+    Your research should include:
+    1. Current state and background information
+    2. Key challenges and opportunities  
+    3. Best practices and solutions from similar contexts
+    4. Recent developments and emerging trends
+    5. Statistical data and factual information
+    6. Expert opinions and case studies
+    7. Regulatory and policy considerations
+    8. Technological aspects and innovations
+    
+    Focus on gathering credible, up-to-date information from reliable sources including:
+    - Government reports and official statistics
+    - Academic research papers and journals
+    - Industry reports and white papers
+    - News articles from reputable sources
+    - Expert interviews and opinions
+    - Case studies from successful implementations
+    
+    The research should be thorough enough to support a {length}-page {report_type} report.
+    Ensure all sources are properly documented for reference.
+  expected_output: >
+    A comprehensive research summary with key findings, data points, statistics, 
+    expert opinions, case studies, and properly formatted source references
+  agent: researcher
+  
+analysis_task:
+  description: >
+    Analyze the research findings for the topic: "{topic}"
+    
+    Your analysis should include:
+    1. Identify key patterns and trends in the data
+    2. Highlight critical insights and their implications
+    3. Assess the significance and impact of different findings
+    4. Compare different approaches and solutions
+    5. Evaluate pros and cons of various options
+    6. Provide data-driven recommendations
+    7. Identify gaps or areas needing further attention
+    8. Assess feasibility and implementation challenges
+    9. Consider stakeholder perspectives and impacts
+    10. Analyze potential risks and mitigation strategies
+    
+    Focus on extracting actionable insights that will strengthen the report.
+    Use quantitative analysis where possible and support findings with data.
+  expected_output: >
+    A detailed analysis document with insights, trends, comparative analysis, 
+    risk assessment, and data-driven recommendations based on research findings
+  agent: analyst
+  dependencies: [research_task]
+  
+writing_task:
+  description: >
+    Create a comprehensive {report_type} report on: "{topic}"
+    
+    The report should be approximately {length} pages long and include:
+    
+    1. Executive Summary (key findings and recommendations)
+    2. Introduction and Background
+    3. Methodology and Approach
+    4. Current State Analysis
+    5. Key Challenges and Pain Points
+    6. Opportunities and Potential Solutions
+    7. Comparative Analysis of Options
+    8. Proposed Solutions and Recommendations
+    9. Implementation Strategy and Timeline
+    10. Expected Outcomes and Benefits
+    11. Risk Assessment and Mitigation
+    12. Conclusion and Next Steps
+    13. Appendices (if needed)
+    
+    Writing guidelines:
+    - Use clear, professional language appropriate for the audience
+    - Include relevant data, statistics, and evidence
+    - Provide specific examples, case studies, and real-world applications
+    - Make it engaging and easy to read with proper formatting
+    - Ensure logical flow and structure throughout
+    - Include actionable, specific recommendations
+    - Use headings, subheadings, and bullet points for readability
+    - Maintain consistency in tone and style
+    - Support claims with credible sources
+    
+    {include_sources_instruction}
+    {include_charts_instruction}
+  expected_output: >
+    A well-structured, comprehensive {report_type} report of approximately {length} pages 
+    with clear sections, professional formatting, and actionable recommendations
+  agent: writer
+  dependencies: [research_task, analysis_task]
+  
+review_task:
+  description: >
+    Review and improve the generated report on: "{topic}"
+    
+    Your review should focus on:
+    1. Accuracy and factual correctness
+    2. Completeness and comprehensiveness
+    3. Clarity and readability
+    4. Logical structure and flow
+    5. Consistency in tone and style
+    6. Actionability and specificity of recommendations
+    7. Proper formatting and presentation
+    8. Grammar, spelling, and language quality
+    9. Overall quality and professionalism
+    10. Alignment with report objectives and requirements
+    
+    Specific review criteria:
+    - Verify all facts and figures are accurate
+    - Ensure all sections flow logically
+    - Check that recommendations are specific and actionable
+    - Confirm the report meets the specified length and type requirements
+    - Validate that all sources are properly cited
+    - Ensure the executive summary accurately reflects the report content
+    - Check for any gaps in information or analysis
+    - Verify the report addresses the original topic comprehensively
+    
+    Provide the final, polished version of the report with any necessary improvements.
+    Ensure the report meets the requirements for a {report_type} of {length} pages.
+  expected_output: >
+    A final, polished, and high-quality report ready for presentation, with all 
+    improvements implemented and quality standards met
+  agent: reviewer
+  dependencies: [writing_task]
+  
+strategy_task:
+  description: >
+    Develop strategic recommendations and implementation roadmap for: "{topic}"
+    
+    Based on the research, analysis, and report content, create:
+    1. Strategic framework and approach
+    2. Prioritized list of recommendations
+    3. Implementation roadmap with phases
+    4. Resource requirements and allocation
+    5. Timeline and milestones
+    6. Success metrics and KPIs
+    7. Stakeholder engagement strategy
+    8. Risk mitigation plans
+    9. Communication and change management approach
+    10. Long-term sustainability considerations
+    
+    Focus on creating actionable, realistic strategies that can be implemented effectively.
+    Consider resource constraints, stakeholder buy-in, and practical challenges.
+  expected_output: >
+    A strategic implementation plan with prioritized recommendations, detailed roadmap, 
+    resource requirements, timeline, and success metrics
+  agent: strategist
+  dependencies: [analysis_task, writing_task]
