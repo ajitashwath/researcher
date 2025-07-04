@@ -18,8 +18,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class OpenAITool:
-    def __init__(self):
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    def __init__(self, api_key=None):
+        if api_key:
+            self.client = OpenAI(api_key=api_key)
+        else:
+            self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     
     def research(self, query: str) -> str:
         try:
@@ -32,7 +35,7 @@ class OpenAITool:
                 max_tokens=1500,
                 temperature=0.7
             )
-            return response.choices[0].message.content
+            return response.choices[0].message.content or f"Research unavailable for: {query}"
         except Exception as e:
             logger.error(f"OpenAI research error: {str(e)}")
             return f"Research unavailable for: {query}"
@@ -48,7 +51,7 @@ class OpenAITool:
                 max_tokens=1000,
                 temperature=0.5
             )
-            return response.choices[0].message.content
+            return response.choices[0].message.content or f"Analysis unavailable for: {topic}"
         except Exception as e:
             logger.error(f"OpenAI analysis error: {str(e)}")
             return f"Analysis unavailable for: {topic}"
@@ -61,13 +64,14 @@ class CrewOutput:
         return self.content
 
 class ReportCreator:
-    def __init__(self):
+    def __init__(self, api_key=None):
+        self.api_key = api_key
         self.setup_tools()
         self.setup_agents()
     
     def setup_tools(self):
         try:
-            self.openai_tool = OpenAITool()
+            self.openai_tool = OpenAITool(api_key=self.api_key)
             logger.info("OpenAI tool initialized successfully")
         except Exception as e:
             logger.error(f"Could not initialize OpenAI tool: {str(e)}")
@@ -257,7 +261,11 @@ class ReportCreator:
                     max_tokens=2000,
                     temperature=0.7
                 )
-                return response.choices[0].message.content
+                content = response.choices[0].message.content
+                if content:
+                    return content
+                else:
+                    return f"Report unavailable for: {topic}"
             except Exception as e:
                 logger.error(f"Fallback OpenAI report failed: {str(e)}")
         

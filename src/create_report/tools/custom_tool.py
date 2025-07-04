@@ -16,20 +16,21 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 class OpenAIWebSearchInput(BaseModel):
-    """Input schema for OpenAI Web Search tool"""
     query: str = Field(..., description="The search query to research")
     depth: str = Field("comprehensive", description="Depth of search: 'basic', 'comprehensive', or 'detailed'")
 
 class OpenAIWebSearchTool(BaseTool):
-    """Custom tool for web search using OpenAI"""
     
     name: str = "openai_web_search"
     description: str = "Search and research information using OpenAI's knowledge base"
     args_schema: Type[BaseModel] = OpenAIWebSearchInput
     
-    def __init__(self):
+    def __init__(self, api_key =None):
         super().__init__()
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        if api_key:
+            self.client = OpenAI(api_key=api_key)
+        else:
+            self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     
     def _run(self, query: str, depth: str = "comprehensive") -> str:
         """
@@ -59,7 +60,11 @@ class OpenAIWebSearchTool(BaseTool):
                 temperature=0.7
             )
             
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            if content:
+                return content
+            else:
+                return f"Error searching for information about {query}: No content returned."
             
         except Exception as e:
             logger.error(f"Error in OpenAI web search for {query}: {str(e)}")
@@ -78,9 +83,12 @@ class OpenAIDataAnalysisTool(BaseTool):
     description: str = "Analyze data and provide insights using OpenAI's analytical capabilities"
     args_schema: Type[BaseModel] = OpenAIDataAnalysisInput
     
-    def __init__(self):
+    def __init__(self, api_key=None):
         super().__init__()
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        if api_key:
+            self.client = OpenAI(api_key=api_key)
+        else:
+            self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     
     def _run(self, data: str, analysis_type: str = "summary", context: str = "") -> str:
         """
@@ -116,7 +124,11 @@ class OpenAIDataAnalysisTool(BaseTool):
                 temperature=0.5
             )
             
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            if content:
+                return content
+            else:
+                return f"Error analyzing data: No content returned."
             
         except Exception as e:
             logger.error(f"Error in OpenAI data analysis: {str(e)}")
@@ -136,9 +148,12 @@ class OpenAIContentGeneratorTool(BaseTool):
     description: str = "Generate structured content like reports, summaries, and analyses using OpenAI"
     args_schema: Type[BaseModel] = OpenAIContentGeneratorInput
     
-    def __init__(self):
+    def __init__(self, api_key=None):
         super().__init__()
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        if api_key:
+            self.client = OpenAI(api_key=api_key)
+        else:
+            self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     
     def _run(self, topic: str, content_type: str = "report", length: str = "medium", style: str = "professional") -> str:
         """
@@ -175,7 +190,11 @@ class OpenAIContentGeneratorTool(BaseTool):
                 temperature=0.7
             )
             
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            if content:
+                return content
+            else:
+                return f"Error generating content about {topic}: No content returned."
             
         except Exception as e:
             logger.error(f"Error in OpenAI content generation: {str(e)}")
@@ -194,9 +213,12 @@ class OpenAIResearchTool(BaseTool):
     description: str = "Conduct comprehensive research on topics using OpenAI's knowledge base"
     args_schema: Type[BaseModel] = OpenAIResearchInput
     
-    def __init__(self):
+    def __init__(self, api_key=None):
         super().__init__()
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        if api_key:
+            self.client = OpenAI(api_key=api_key)
+        else:
+            self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     
     def _run(self, query: str, focus_areas: List[str] = [], research_depth: str = "standard") -> str:
         """
@@ -232,7 +254,11 @@ class OpenAIResearchTool(BaseTool):
                 temperature=0.6
             )
             
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            if content:
+                return content
+            else:
+                return f"Error researching {query}: No content returned."
             
         except Exception as e:
             logger.error(f"Error in OpenAI research: {str(e)}")

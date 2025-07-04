@@ -61,6 +61,13 @@ def main():
     
     with st.sidebar:
         st.header("📋 Configuration")
+        api_key = st.text_input(
+            "OpenAI API Key",
+            type="password",
+            value=st.session_state.get("openai_api_key", ""),
+            help="Enter your OpenAI API key to use the report generator. This key is not stored on any server."
+        )
+        st.session_state.openai_api_key = api_key
         report_type = st.selectbox(
             "Select Report Type",
             ["Comprehensive Analysis", "Executive Summary", "Technical Deep Dive", "Market Research", "Strategic Planning"]
@@ -97,7 +104,7 @@ def main():
         
         if st.button("🚀 Generate Report", type="primary"):
             if topic.strip():
-                generate_report(topic, report_type, report_length, include_charts, include_sources)
+                generate_report(topic, report_type, report_length, include_charts, include_sources, api_key)
             else:
                 st.error("Please enter a topic for the report!")
     
@@ -113,14 +120,14 @@ def main():
             for report in st.session_state.recent_reports[-3:]:
                 st.write(f"• {report}")
 
-def generate_report(topic, report_type, report_length, include_charts, include_sources):
+def generate_report(topic, report_type, report_length, include_charts, include_sources, api_key):
     progress_bar = st.progress(0)
     status_text = st.empty()
     
     try:
         status_text.text("🔄 Initializing AI agents...")
         progress_bar.progress(10)
-        report_creator = ReportCreator()
+        report_creator = ReportCreator(api_key=api_key)
         status_text.text("🔍 Researching topic...")
         progress_bar.progress(30)
         config = {
