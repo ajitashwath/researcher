@@ -178,20 +178,6 @@ def display_report(report, topic):
         file_name=f"report_{topic.replace(' ', '_').replace('?', '')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
         mime="text/plain"
     )
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("📧 Email Report"):
-            st.info("Email functionality would be implemented here")
-    
-    with col2:
-        if st.button("🔗 Share Link"):
-            st.info("Share link functionality would be implemented here")
-    
-    with col3:
-        if st.button("📋 Copy to Clipboard"):
-            st.info("Copy functionality would be implemented here")
 
 if __name__ == "__main__":
     main()
