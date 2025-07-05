@@ -17,8 +17,8 @@ class CrewOutput:
         return self.content
 
 class CrewManager:
-    def __init__(self, config_path: Optional[str] = None):
-
+    def __init__(self, config_path: Optional[str] = None, api_key: Optional[str] = None):
+        self.api_key = api_key
         self.config_path = config_path or self._get_default_config_path()
         self.agents_config = self._load_config('agents.yaml')
         self.tasks_config = self._load_config('tasks.yaml')
@@ -41,12 +41,10 @@ class CrewManager:
     def _setup_tools(self) -> Dict[str, Any]:
         tools = {}
         try:
-            for tool in get_all_tools():
+            for tool in get_all_tools(api_key=self.api_key):
                 tools[tool.name] = tool
         except Exception as e:
             logger.warning(f"Could not load custom tools: {str(e)}")
-        
-        # Add external tools
         try:
             tools['search_tool'] = SerperDevTool()
         except Exception as e:
@@ -60,8 +58,6 @@ class CrewManager:
         
         config = self.agents_config[agent_name].copy()
         config.update(kwargs)
-        
-        # Setup tools for the agent
         agent_tools = []
         if 'tools' in config:
             for tool_name in config['tools']:
@@ -69,8 +65,7 @@ class CrewManager:
                     agent_tools.append(self.tools[tool_name])
                 else:
                     logger.warning(f"Tool '{tool_name}' not found for agent '{agent_name}'")
-        
-        # Create the agent
+
         agent = Agent(
             role=config.get('role', ''),
             goal=config.get('goal', ''),
@@ -196,8 +191,8 @@ class CrewManager:
         )
 
 class ReportCrew:
-    def __init__(self):
-        self.crew_manager = CrewManager()
+    def __init__(self, api_key: Optional[str] = None):
+        self.crew_manager = CrewManager(api_key=api_key)
     
     def generate_report(self, topic: str, config: Dict[str, Any]) -> str:
         try:

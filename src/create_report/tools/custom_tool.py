@@ -7,11 +7,7 @@ import pandas as pd
 from datetime import datetime
 import logging
 from openai import OpenAI
-from dotenv import load_dotenv
 import os
-
-# Load environment variables
-load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -20,29 +16,17 @@ class OpenAIWebSearchInput(BaseModel):
     depth: str = Field("comprehensive", description="Depth of search: 'basic', 'comprehensive', or 'detailed'")
 
 class OpenAIWebSearchTool(BaseTool):
-    
     name: str = "openai_web_search"
     description: str = "Search and research information using OpenAI's knowledge base"
     args_schema: Type[BaseModel] = OpenAIWebSearchInput
     
-    def __init__(self, api_key = None):
+    def __init__(self, api_key=None):
         super().__init__()
-        if api_key:
-            self.client = OpenAI(api_key=api_key)
-        else:
-            self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        if not api_key:
+            raise ValueError("OpenAI API key must be provided")
+        self.client = OpenAI(api_key=api_key)
     
     def _run(self, query: str, depth: str = "comprehensive") -> str:
-        """
-        Search for information using OpenAI
-        
-        Args:
-            query: The search query
-            depth: Depth of search
-            
-        Returns:
-            str: Search results
-        """
         try:
             system_prompt = {
                 "basic": "Provide a concise answer with key facts about the query.",
@@ -71,37 +55,22 @@ class OpenAIWebSearchTool(BaseTool):
             return f"Error searching for information about {query}: {str(e)}"
 
 class OpenAIDataAnalysisInput(BaseModel):
-    """Input schema for OpenAI Data Analysis tool"""
     data: str = Field(..., description="Data to analyze (JSON format or CSV-like string)")
     analysis_type: str = Field("summary", description="Type of analysis: 'summary', 'trends', 'insights', 'recommendations'")
     context: str = Field("", description="Additional context for analysis")
 
 class OpenAIDataAnalysisTool(BaseTool):
-    """Custom tool for data analysis using OpenAI"""
-    
     name: str = "openai_data_analysis"
     description: str = "Analyze data and provide insights using OpenAI's analytical capabilities"
     args_schema: Type[BaseModel] = OpenAIDataAnalysisInput
     
     def __init__(self, api_key=None):
         super().__init__()
-        if api_key:
-            self.client = OpenAI(api_key=api_key)
-        else:
-            self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        if not api_key:
+            raise ValueError("OpenAI API key must be provided")
+        self.client = OpenAI(api_key=api_key)
     
     def _run(self, data: str, analysis_type: str = "summary", context: str = "") -> str:
-        """
-        Analyze data using OpenAI
-        
-        Args:
-            data: Data to analyze
-            analysis_type: Type of analysis to perform
-            context: Additional context
-            
-        Returns:
-            str: Analysis results
-        """
         try:
             system_prompts = {
                 "summary": "Analyze the provided data and give a comprehensive summary highlighting key statistics and patterns.",
@@ -135,46 +104,29 @@ class OpenAIDataAnalysisTool(BaseTool):
             return f"Error analyzing data: {str(e)}"
 
 class OpenAIContentGeneratorInput(BaseModel):
-    """Input schema for OpenAI Content Generator tool"""
     topic: str = Field(..., description="Topic for content generation")
     content_type: str = Field("report", description="Type of content: 'report', 'summary', 'analysis', 'proposal'")
     length: str = Field("medium", description="Length: 'short', 'medium', 'long'")
     style: str = Field("professional", description="Writing style: 'professional', 'academic', 'casual'")
 
 class OpenAIContentGeneratorTool(BaseTool):
-    """Custom tool for content generation using OpenAI"""
-    
     name: str = "openai_content_generator"
     description: str = "Generate structured content like reports, summaries, and analyses using OpenAI"
     args_schema: Type[BaseModel] = OpenAIContentGeneratorInput
     
     def __init__(self, api_key=None):
         super().__init__()
-        if api_key:
-            self.client = OpenAI(api_key=api_key)
-        else:
-            self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        if not api_key:
+            raise ValueError("OpenAI API key must be provided")
+        self.client = OpenAI(api_key=api_key)
     
     def _run(self, topic: str, content_type: str = "report", length: str = "medium", style: str = "professional") -> str:
-        """
-        Generate content using OpenAI
-        
-        Args:
-            topic: Topic for content generation
-            content_type: Type of content to generate
-            length: Length of content
-            style: Writing style
-            
-        Returns:
-            str: Generated content
-        """
         try:
             token_limits = {
                 "short": 800,
                 "medium": 1500,
                 "long": 2000
             }
-            
             system_prompt = f"""You are a {style} writer specializing in creating {content_type}s. 
             Generate well-structured, informative content that is {length} in length and follows {style} writing conventions."""
             
@@ -201,37 +153,22 @@ class OpenAIContentGeneratorTool(BaseTool):
             return f"Error generating content about {topic}: {str(e)}"
 
 class OpenAIResearchInput(BaseModel):
-    """Input schema for OpenAI Research tool"""
     query: str = Field(..., description="Research query or topic")
     focus_areas: List[str] = Field([], description="Specific areas to focus on")
     research_depth: str = Field("standard", description="Research depth: 'basic', 'standard', 'comprehensive'")
 
 class OpenAIResearchTool(BaseTool):
-    """Custom tool for research tasks using OpenAI"""
-    
     name: str = "openai_research_tool"
     description: str = "Conduct comprehensive research on topics using OpenAI's knowledge base"
     args_schema: Type[BaseModel] = OpenAIResearchInput
     
     def __init__(self, api_key=None):
         super().__init__()
-        if api_key:
-            self.client = OpenAI(api_key=api_key)
-        else:
-            self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        if not api_key:
+            raise ValueError("OpenAI API key must be provided")
+        self.client = OpenAI(api_key=api_key)
     
     def _run(self, query: str, focus_areas: List[str] = [], research_depth: str = "standard") -> str:
-        """
-        Conduct research using OpenAI
-        
-        Args:
-            query: Research query
-            focus_areas: Areas to focus on
-            research_depth: Depth of research
-            
-        Returns:
-            str: Research results
-        """
         try:
             system_prompts = {
                 "basic": "Provide basic information and key facts about the topic.",
@@ -264,25 +201,16 @@ class OpenAIResearchTool(BaseTool):
             logger.error(f"Error in OpenAI research: {str(e)}")
             return f"Error conducting research on '{query}': {str(e)}"
 
-def get_all_tools() -> List[BaseTool]:
-    """
-    Get all available OpenAI-powered custom tools
-    
-    Returns:
-        List[BaseTool]: List of all custom tools
-    """
-    return [
-        OpenAIWebSearchTool(),
-        OpenAIDataAnalysisTool(),
-        OpenAIContentGeneratorTool(),
-        OpenAIResearchTool()
-    ]
-
-if __name__ == "__main__":
-    # Test the tools
-    tools = get_all_tools()
-    
-    for tool in tools:
-        print(f"Tool: {tool.name}")
-        print(f"Description: {tool.description}")
-        print("---")
+def get_all_tools(api_key=None) -> List[BaseTool]:
+    if not api_key:
+        return []
+    try:
+        return [
+            OpenAIWebSearchTool(api_key=api_key),
+            OpenAIDataAnalysisTool(api_key=api_key),
+            OpenAIContentGeneratorTool(api_key=api_key),
+            OpenAIResearchTool(api_key=api_key)
+        ]
+    except Exception as e:
+        logger.error(f"Error initializing tools: {str(e)}")
+        return []

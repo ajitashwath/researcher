@@ -9,9 +9,6 @@ from datetime import datetime
 import logging
 from typing import Dict, Any
 from openai import OpenAI
-from dotenv import load_dotenv
-
-load_dotenv()
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
