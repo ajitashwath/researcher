@@ -4,13 +4,11 @@ sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 sys.modules["sqlite3.dbapi2"] = sys.modules["pysqlite3.dbapi2"]
 
 from crewai import Agent, Task, Crew
-import os
-from datetime import datetime
 import logging
 from typing import Dict, Any
 from openai import OpenAI
+import os
 
-# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -61,6 +59,9 @@ class CrewOutput:
 
 class ReportCreator:
     def __init__(self, api_key=None):
+        if not api_key:
+            raise ValueError("OpenAI API key must be provided by the user.")
+        os.environ["OPENAI_API_KEY"] = api_key
         self.api_key = api_key
         self.setup_tools()
         self.setup_agents()
@@ -78,9 +79,9 @@ class ReportCreator:
         self.researcher = Agent(
             role="Senior Research Analyst",
             goal="Conduct comprehensive research on the given topic and gather relevant, accurate information",
-            backstory="""You are a senior research analyst with expertise in gathering and analyzing 
-            information from various sources. You have a keen eye for detail and can distinguish 
-            between credible and unreliable sources. You excel at finding the most current and 
+            backstory="""You are a senior research analyst with expertise in gathering and analyzing \
+            information from various sources. You have a keen eye for detail and can distinguish \
+            between credible and unreliable sources. You excel at finding the most current and \
             relevant information on any topic.""",
             tools=[],
             verbose=True,
@@ -91,9 +92,9 @@ class ReportCreator:
         self.writer = Agent(
             role="Professional Content Writer",
             goal="Create well-structured, engaging, and comprehensive reports based on research findings",
-            backstory="""You are a professional content writer with years of experience in creating 
-            reports, articles, and documentation. You have the ability to transform complex research 
-            findings into clear, engaging, and well-structured content that is easy to understand 
+            backstory="""You are a professional content writer with years of experience in creating \
+            reports, articles, and documentation. You have the ability to transform complex research \
+            findings into clear, engaging, and well-structured content that is easy to understand \
             for the target audience.""",
             verbose=True,
             allow_delegation=False
@@ -103,9 +104,9 @@ class ReportCreator:
         self.reviewer = Agent(
             role="Quality Assurance Specialist",
             goal="Review and improve the quality, accuracy, and completeness of the generated report",
-            backstory="""You are a quality assurance specialist with expertise in reviewing and 
-            improving written content. You have a sharp eye for inconsistencies, gaps in information, 
-            and areas that need improvement. You ensure that all reports meet the highest standards 
+            backstory="""You are a quality assurance specialist with expertise in reviewing and \
+            improving written content. You have a sharp eye for inconsistencies, gaps in information, \
+            and areas that need improvement. You ensure that all reports meet the highest standards \
             of quality and accuracy.""",
             verbose=True,
             allow_delegation=False
@@ -115,8 +116,8 @@ class ReportCreator:
         self.analyst = Agent(
             role="Data Analyst",
             goal="Analyze data, identify trends, and provide insights to support the report",
-            backstory="""You are a data analyst with strong analytical skills and experience in 
-            interpreting data to extract meaningful insights. You can identify patterns, trends, 
+            backstory="""You are a data analyst with strong analytical skills and experience in \
+            interpreting data to extract meaningful insights. You can identify patterns, trends, \
             and correlations that add value to reports and help in decision-making.""",
             verbose=True,
             allow_delegation=False
@@ -155,7 +156,7 @@ class ReportCreator:
             description=f"""
             Conduct comprehensive research on the topic: "{topic}"
             
-            Additional research data available:
+            Use the following research data as a starting point:
             {research_data}
             
             Your research should include:
@@ -264,7 +265,7 @@ class ReportCreator:
                     return f"Report unavailable for: {topic}"
             except Exception as e:
                 logger.error(f"Fallback OpenAI report failed: {str(e)}")
-        
+        from datetime import datetime
         return f"""
 # {report_type}: {topic}
 
@@ -312,8 +313,8 @@ The analysis of "{topic}" reveals several important considerations that should b
         """
 
 def run_report_creation():
-    creator = ReportCreator()
-    
+    # Example usage for CLI/testing
+    creator = ReportCreator(api_key="YOUR_API_KEY")
     config = {
         'topic': 'How to improve infrastructure in Bangalore?',
         'report_type': 'Comprehensive Analysis',
@@ -321,7 +322,6 @@ def run_report_creation():
         'include_charts': True,
         'include_sources': True
     }
-    
     report = creator.create_report(config)
     print(report)
 
