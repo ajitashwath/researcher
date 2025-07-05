@@ -18,6 +18,8 @@ class ReportCreator:
             raise ValueError("OpenAI API key must be provided by the user.")
         self.api_key = api_key
         self.client = OpenAI(api_key=api_key)
+        # Use GPT-4o-mini which is available to all users
+        self.model = "gpt-4o-mini"
     
     def create_report(self, config: Dict[str, Any]) -> str:
         """Main method to create a comprehensive report"""
@@ -47,7 +49,7 @@ class ReportCreator:
         """Conduct comprehensive research on the topic"""
         try:
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=self.model,
                 messages=[
                     {
                         "role": "system", 
@@ -80,7 +82,7 @@ class ReportCreator:
         """Analyze the research data and extract insights"""
         try:
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=self.model,
                 messages=[
                     {
                         "role": "system", 
@@ -122,7 +124,7 @@ class ReportCreator:
             sources_instruction = "Include proper citations and references throughout the report." if include_sources else ""
             
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=self.model,
                 messages=[
                     {
                         "role": "system", 
@@ -172,7 +174,7 @@ class ReportCreator:
         """Review and polish the generated report"""
         try:
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=self.model,
                 messages=[
                     {
                         "role": "system", 
@@ -210,7 +212,7 @@ class ReportCreator:
         # Try simple OpenAI call as fallback
         try:
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=self.model,
                 messages=[
                     {
                         "role": "system", 

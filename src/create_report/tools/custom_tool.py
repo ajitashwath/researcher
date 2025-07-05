@@ -25,6 +25,7 @@ class OpenAIWebSearchTool(BaseTool):
         if not api_key:
             raise ValueError("OpenAI API key must be provided")
         self.client = OpenAI(api_key=api_key)
+        self.model = "gpt-4o-mini"  # Use GPT-4o-mini instead of GPT-3.5-turbo
     
     def _run(self, query: str, depth: str = "comprehensive") -> str:
         try:
@@ -35,7 +36,7 @@ class OpenAIWebSearchTool(BaseTool):
             }
             
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt.get(depth, system_prompt["comprehensive"])},
                     {"role": "user", "content": f"Research and provide information about: {query}"}
@@ -69,6 +70,7 @@ class OpenAIDataAnalysisTool(BaseTool):
         if not api_key:
             raise ValueError("OpenAI API key must be provided")
         self.client = OpenAI(api_key=api_key)
+        self.model = "gpt-4o-mini"  # Use GPT-4o-mini instead of GPT-3.5-turbo
     
     def _run(self, data: str, analysis_type: str = "summary", context: str = "") -> str:
         try:
@@ -84,7 +86,7 @@ class OpenAIDataAnalysisTool(BaseTool):
                 user_prompt += f"\nContext: {context}"
             
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompts.get(analysis_type, system_prompts["summary"])},
                     {"role": "user", "content": user_prompt}
@@ -119,6 +121,7 @@ class OpenAIContentGeneratorTool(BaseTool):
         if not api_key:
             raise ValueError("OpenAI API key must be provided")
         self.client = OpenAI(api_key=api_key)
+        self.model = "gpt-4o-mini"  # Use GPT-4o-mini instead of GPT-3.5-turbo
     
     def _run(self, topic: str, content_type: str = "report", length: str = "medium", style: str = "professional") -> str:
         try:
@@ -133,7 +136,7 @@ class OpenAIContentGeneratorTool(BaseTool):
             user_prompt = f"Create a {length} {content_type} about: {topic}"
             
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -167,6 +170,7 @@ class OpenAIResearchTool(BaseTool):
         if not api_key:
             raise ValueError("OpenAI API key must be provided")
         self.client = OpenAI(api_key=api_key)
+        self.model = "gpt-4o-mini"  # Use GPT-4o-mini instead of GPT-3.5-turbo
     
     def _run(self, query: str, focus_areas: List[str] = [], research_depth: str = "standard") -> str:
         try:
@@ -182,7 +186,7 @@ class OpenAIResearchTool(BaseTool):
                 user_prompt += f"\n\nPlease focus specifically on these areas: {', '.join(focus_areas)}"
             
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompts.get(research_depth, system_prompts["standard"])},
                     {"role": "user", "content": user_prompt}
