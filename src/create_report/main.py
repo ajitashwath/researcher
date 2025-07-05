@@ -19,10 +19,9 @@ logger = logging.getLogger(__name__)
 
 class OpenAITool:
     def __init__(self, api_key=None):
-        if api_key:
-            self.client = OpenAI(api_key=api_key)
-        else:
-            self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        if not api_key:
+            raise ValueError("OpenAI API key must be provided by the user.")
+        self.client = OpenAI(api_key=api_key)
     
     def research(self, query: str) -> str:
         try:
