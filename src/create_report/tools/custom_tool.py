@@ -25,7 +25,7 @@ class OpenAIWebSearchTool(BaseTool):
     description: str = "Search and research information using OpenAI's knowledge base"
     args_schema: Type[BaseModel] = OpenAIWebSearchInput
     
-    def __init__(self, api_key =None):
+    def __init__(self, api_key = None):
         super().__init__()
         if api_key:
             self.client = OpenAI(api_key=api_key)

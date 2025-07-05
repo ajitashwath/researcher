@@ -8,8 +8,8 @@ import sys
 import os
 from datetime import datetime
 import time
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 from create_report.main import ReportCreator
 
 def main():
@@ -121,6 +121,8 @@ def main():
                 st.write(f"• {report}")
 
 def generate_report(topic, report_type, report_length, include_charts, include_sources, api_key):
+    if api_key:
+        os.environ["OPENAI_API_KEY"] = api_key
     progress_bar = st.progress(0)
     status_text = st.empty()
     
