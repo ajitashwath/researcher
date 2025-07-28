@@ -1,0 +1,10 @@
+crewai
+crewai[tools]
+unstructured
+pyowm
+python-dotenv
+langchain-groq
+fastapi
+uvicorn[standard]
+gunicorn
+langchain-community
