@@ -1,4 +1,5 @@
 # Researcher Agent
+A web based AI application that creates comprehensive reports on any topic using AI agents.
 ## Features
 
 - 🤖 **Multi-Agent AI System**: Research, analysis, writing, and review agents working together
