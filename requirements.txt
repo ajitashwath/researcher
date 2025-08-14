@@ -26,3 +26,4 @@ Jinja2
 email-validator
 python-jose[cryptography]
 passlib[bcrypt]
+chromadb
