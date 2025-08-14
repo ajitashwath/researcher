@@ -29,16 +29,17 @@ logger = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
     """Application settings from environment variables"""
-    openai_api_key: str = Field(..., env="OPENAI_API_KEY")
-    serper_api_key: Optional[str] = Field(None, env="SERPER_API_KEY")
-    environment: str = Field("production", env="ENVIRONMENT")
-    log_level: str = Field("INFO", env="LOG_LEVEL")
-    allowed_hosts: List[str] = Field(["*"], env="ALLOWED_HOSTS")
-    cors_origins: List[str] = Field(["*"], env="CORS_ORIGINS")
+    openai_api_key: Optional[str] = Field(None, alias="OPENAI_API_KEY")
+    serper_api_key: Optional[str] = Field(None, alias="SERPER_API_KEY")
+    environment: str = Field("production", alias="ENVIRONMENT")
+    log_level: str = Field("INFO", alias="LOG_LEVEL")
+    allowed_hosts: List[str] = Field(["*"])
+    cors_origins: List[str] = Field(["*"])
     
     class Config:
         env_file = ".env"
         case_sensitive = False
+        extra = "ignore"  # Ignore extra fields
 
 # Global settings instance
 settings = Settings()
@@ -53,7 +54,7 @@ class ReportRequest(BaseModel):
     report_type: str = Field(
         default="Comprehensive Analysis", 
         description="Type of report to generate",
-        regex=r"^(Comprehensive Analysis|Strategic Report|Market Analysis|Technical Report|Business Plan|Research Report)$"
+        pattern=r"^(Comprehensive Analysis|Strategic Report|Market Analysis|Technical Report|Business Plan|Research Report)$"
     )
     length: int = Field(
         default=5, 
@@ -118,6 +119,7 @@ async def lifespan(app: FastAPI):
     # Validate API keys
     if not settings.openai_api_key:
         logger.error("OpenAI API key not found in environment variables")
+        logger.error("Please set OPENAI_API_KEY environment variable")
         raise RuntimeError("OpenAI API key is required")
     
     logger.info("API keys validated successfully")
