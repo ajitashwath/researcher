@@ -9,7 +9,7 @@ from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
@@ -29,17 +29,18 @@ logger = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
     """Application settings from environment variables"""
+    model_config = ConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore"
+    )
+    
     openai_api_key: Optional[str] = Field(None, alias="OPENAI_API_KEY")
     serper_api_key: Optional[str] = Field(None, alias="SERPER_API_KEY")
     environment: str = Field("production", alias="ENVIRONMENT")
     log_level: str = Field("INFO", alias="LOG_LEVEL")
-    allowed_hosts: List[str] = Field(["*"])
-    cors_origins: List[str] = Field(["*"])
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
-        extra = "ignore"  # Ignore extra fields
+    allowed_hosts: List[str] = Field(default_factory=lambda: ["*"])
+    cors_origins: List[str] = Field(default_factory=lambda: ["*"])
 
 # Global settings instance
 settings = Settings()
@@ -50,6 +51,8 @@ logging.getLogger().setLevel(getattr(logging, settings.log_level.upper()))
 # Request/Response Models
 class ReportRequest(BaseModel):
     """Request model for report generation"""
+    model_config = ConfigDict(str_strip_whitespace=True)
+    
     topic: str = Field(..., min_length=5, max_length=500, description="The topic for the report")
     report_type: str = Field(
         default="Comprehensive Analysis", 
@@ -75,8 +78,9 @@ class ReportRequest(BaseModel):
         description="Use CrewAI for multi-agent report generation"
     )
 
-    @validator('topic')
-    def validate_topic(cls, v):
+    @field_validator('topic')
+    @classmethod
+    def validate_topic(cls, v: str) -> str:
         if not v.strip():
             raise ValueError('Topic cannot be empty or whitespace only')
         return v.strip()
@@ -90,7 +94,7 @@ class ReportResponse(BaseModel):
     generated_at: datetime
     word_count: int
     status: str = "completed"
-    metadata: Dict[str, Any] = {}
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
 class HealthResponse(BaseModel):
     """Health check response model"""
@@ -98,7 +102,7 @@ class HealthResponse(BaseModel):
     timestamp: datetime
     version: str = "1.0.0"
     environment: str
-    services: Dict[str, str] = {}
+    services: Dict[str, str] = Field(default_factory=dict)
 
 class ErrorResponse(BaseModel):
     """Error response model"""
@@ -192,7 +196,7 @@ async def global_exception_handler(request, exc):
             error="Internal Server Error",
             message="An unexpected error occurred while processing your request",
             timestamp=datetime.utcnow()
-        ).dict()
+        ).model_dump()
     )
 
 # API Routes
